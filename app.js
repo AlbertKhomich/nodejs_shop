@@ -1,10 +1,10 @@
 const express = require('express');
-const path = require('path');
 const bodyParcer = require('body-parser');
+const path = require('path');
 
-const rootDir = require('./util/path');
-const adminData = require('./routes/admin');
+const adminRoutes = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
+const pageNotFoundController = require('./controllers/404');
 
 const app = express();
 
@@ -15,13 +15,12 @@ app.set('views', 'views');
 // Auto Encode requests
 app.use(bodyParcer.urlencoded({ extended: false }));
 
-app.use(express.static(path.join(rootDir, 'public')));
+// Initialisation of public folder for express
+app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/admin', adminData.routes);
+app.use('/admin', adminRoutes);
 app.use(shopRoutes);
 
-app.use((req, res, next) => {
-  res.status(404).render('404', { pageTitle: 'Page not found', path: '' });
-});
+app.use(pageNotFoundController.pageNotFound);
 
 app.listen(3000);

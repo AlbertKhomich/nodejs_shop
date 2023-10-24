@@ -5,6 +5,7 @@ const path = require('path');
 const adminRoutes = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
 const pageNotFoundController = require('./controllers/404');
+const db = require('./util/database');
 
 const app = express();
 

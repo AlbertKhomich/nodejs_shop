@@ -9,24 +9,28 @@ exports.getShop = (req, res, next) => {
 };
 
 exports.getProductList = (req, res, next) => {
-  Product.fetchAll((products) => {
-    res.render('shop/product-list', {
-      prods: products,
-      pageTitle: 'Products',
-      path: '/product-list',
-    });
-  });
+  Product.fetchAll()
+    .then(([rows, fieldData]) => {
+      res.render('shop/product-list', {
+        prods: rows,
+        pageTitle: 'Products',
+        path: '/product-list',
+      });
+    })
+    .catch((err) => console.log(err));
 };
 
 exports.getProduct = (req, res, next) => {
   const prodId = req.params.productId;
-  Product.findById(prodId, (product) => {
-    res.render('shop/product-detail', {
-      pageTitle: product.title,
-      path: '/product-list',
-      product: product,
-    });
-  });
+  Product.findById(prodId)
+    .then(([product]) => {
+      res.render('shop/product-detail', {
+        pageTitle: product.title,
+        path: '/product-list',
+        product: product[0],
+      });
+    })
+    .catch((err) => console.log(err));
 };
 
 exports.getCart = (req, res, next) => {

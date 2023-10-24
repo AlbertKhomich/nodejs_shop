@@ -1,1 +1,9 @@
-[]
+[
+  {
+    "id": "0.5310064964537355",
+    "title": "Book 1",
+    "imgURL": "https://www.collinsdictionary.com/images/full/book_181404689_1000.jpg",
+    "description": "Good",
+    "price": "11"
+  }
+]

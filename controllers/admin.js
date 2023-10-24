@@ -1,3 +1,4 @@
+const { fileLoader } = require('ejs');
 const Product = require('../models/product');
 
 exports.getAddProduct = (req, res, next) => {
@@ -14,8 +15,10 @@ exports.postAddProduct = (req, res, next) => {
   const description = req.body.description;
   const price = req.body.price;
   const product = new Product(null, title, img, description, price);
-  product.save();
-  res.redirect('/admin/products');
+  product
+    .save()
+    .then(() => res.redirect('/admin/products'))
+    .catch((err) => console.log(err));
 };
 
 exports.getEditProduct = (req, res, next) => {
@@ -59,11 +62,13 @@ exports.getDeleteProduct = (req, res, next) => {
 };
 
 exports.getAdminProducts = (req, res, next) => {
-  Product.fetchAll((products) => {
-    res.render('admin/products', {
-      pageTitle: 'Admin Products',
-      path: '/admin/products',
-      prods: products,
-    });
-  });
+  Product.fetchAll()
+    .then(([rows, fieldData]) => {
+      res.render('admin/products', {
+        pageTitle: 'Admin Products',
+        path: '/admin/products',
+        prods: rows,
+      });
+    })
+    .catch((err) => console.log(err));
 };

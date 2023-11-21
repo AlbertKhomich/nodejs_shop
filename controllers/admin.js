@@ -36,7 +36,8 @@ exports.postAddProduct = (req, res, next) => {
 exports.postAddUser = (req, res, next) => {
   const name = req.body.name;
   const email = req.body.email;
-  const user = new User(name, email);
+  const cart = { items: [] };
+  const user = new User(name, email, cart);
   user
     .save()
     .then(() => res.redirect('/admin/add-user'))

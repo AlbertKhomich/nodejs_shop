@@ -43,6 +43,16 @@ class Product {
     const db = getDb();
     const query = { _id: new ObjectId(id) };
 
+    // cascade deleting from order's list. if order's list is empty - delete an order
+    db.collection('orders')
+      .updateMany({}, { $pull: { items: { _id: new ObjectId(id) } } })
+      .then(() => {
+        db.collection('orders').deleteMany({
+          $expr: { $eq: [{ $size: '$items' }, 0] },
+        });
+      })
+      .catch((err) => console.log(err));
+
     return db
       .collection('products')
       .deleteOne(query)

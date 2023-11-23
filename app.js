@@ -1,12 +1,13 @@
 const express = require('express');
 const bodyParcer = require('body-parser');
 const path = require('path');
+const mongoose = require('mongoose');
 
 const adminRoutes = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
 const pageNotFoundController = require('./controllers/404');
-const mongoConnect = require('./util/database').mongoConnect;
 const User = require('./models/user');
+const { connect } = require('http2');
 
 const app = express();
 
@@ -21,9 +22,9 @@ app.use(bodyParcer.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use((req, res, next) => {
-  User.findUserById('655c7f90d51456d1d04c8b43')
+  User.findById('655e2d72b0470c8038d56fae')
     .then((user) => {
-      req.user = new User(user.name, user.email, user.cart, user._id);
+      req.user = user;
       next();
     })
     .catch((err) => console.log(err));
@@ -34,6 +35,17 @@ app.use(shopRoutes);
 
 app.use(pageNotFoundController.pageNotFound);
 
-mongoConnect(() => {
-  app.listen(3000);
-});
+mongoose
+  .connect(
+    'mongodb+srv://alterego:tNXWSnypMpjgrFkX@clusterfirstnodeapp.ubtp1kv.mongodb.net/shop'
+  )
+  .then(() => {
+    // const user = new User({
+    //   name: 'Albert',
+    //   email: 'khomich1022@gmail.com',
+    //   cart: { items: [] },
+    // });
+    // user.save();
+    app.listen(3000);
+  })
+  .catch((err) => console.log(err));

@@ -20,14 +20,19 @@ exports.getAddUser = (req, res, next) => {
 exports.postAddProduct = (req, res, next) => {
   const title = req.body.title;
   const img = req.body.imageUrl;
-  const userId = req.user._id;
   const description = req.body.description;
   const price = req.body.price;
-  const product = new Product(title, price, description, img, userId);
+  const product = new Product({
+    title: title,
+    price: price,
+    description: description,
+    imageUrl: img,
+    userId: req.user,
+  });
   product
     .save()
     .then((result) => {
-      console.log(result);
+      // console.log(result);
       res.redirect('/admin/products');
     })
     .catch((err) => console.log(err));
@@ -79,22 +84,23 @@ exports.postEditProduct = (req, res, next) => {
   const updatedImgUrl = req.body.imageUrl;
   const updatedPrice = req.body.price;
   const updatedDescription = req.body.description;
-  Product.update(
-    prodId,
-    updatedTitle,
-    updatedPrice,
-    updatedImgUrl,
-    updatedDescription
-  )
-    .then(() => {
-      res.redirect('/admin/products');
-    })
-    .catch((err) => console.log(err));
+  Product.findById(prodId).then((product) => {
+    product.title = updatedTitle;
+    product.imageUrl = updatedImgUrl;
+    product.price = updatedPrice;
+    product.description = updatedDescription;
+    return product
+      .save()
+      .then(() => {
+        res.redirect('/admin/products');
+      })
+      .catch((err) => console.log(err));
+  });
 };
 
 exports.getDeleteProduct = (req, res, next) => {
   const prodId = req.params.productId;
-  Product.delete(prodId)
+  Product.findByIdAndDelete(prodId)
     .then(() => {
       res.redirect('/admin/products');
     })
@@ -102,7 +108,9 @@ exports.getDeleteProduct = (req, res, next) => {
 };
 
 exports.getAdminProducts = (req, res, next) => {
-  Product.fetchAll()
+  Product.find()
+    // .select('title price -_id')
+    // .populate('userId', 'name')
     .then((products) => {
       res.render('admin/products', {
         pageTitle: 'Admin Products',

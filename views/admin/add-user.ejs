@@ -12,6 +12,7 @@
       <label for="imageUrl">Email</label>
       <input type="email" name="email" id="email" />
     </div>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
     <button type="submit">Add User</button>
   </form>
 </main>

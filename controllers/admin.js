@@ -1,14 +1,14 @@
 const { fileLoader } = require('ejs');
 const Product = require('../models/product');
 const User = require('../models/user');
+const Order = require('../models/orders');
+const product = require('../models/product');
 
 exports.getAddProduct = (req, res, next) => {
   res.render('admin/edit-product', {
     pageTitle: 'Add Product',
     path: '/admin/add-product',
     editing: false,
-    isAuthenticated: req.session.isLoggedIn,
-    user: req.user,
   });
 };
 
@@ -16,8 +16,6 @@ exports.getAddUser = (req, res, next) => {
   res.render('admin/add-user', {
     pageTitle: 'Add User',
     path: '/admin/add-user',
-    isAuthenticated: req.session.isLoggedIn,
-    user: req.user,
   });
 };
 
@@ -77,8 +75,6 @@ exports.getEditProduct = (req, res, next) => {
         path: '/admin/edit-product',
         editing: editMode,
         product: product,
-        isAuthenticated: req.session.isLoggedIn,
-        user: req.user,
       });
     })
     .catch((err) => console.log(err));
@@ -91,6 +87,9 @@ exports.postEditProduct = (req, res, next) => {
   const updatedPrice = req.body.price;
   const updatedDescription = req.body.description;
   Product.findById(prodId).then((product) => {
+    if (product.userId.toString() !== req.user._id.toString()) {
+      return res.redirect('/');
+    }
     product.title = updatedTitle;
     product.imageUrl = updatedImgUrl;
     product.price = updatedPrice;
@@ -106,15 +105,48 @@ exports.postEditProduct = (req, res, next) => {
 
 exports.getDeleteProduct = (req, res, next) => {
   const prodId = req.params.productId;
-  Product.findByIdAndDelete(prodId)
-    .then(() => {
+  return Product.deleteOne({ _id: prodId, userId: req.user._id })
+    .then((result) => {
+      if (result.deletedCount === 0) return;
+      return User.updateMany(
+        { 'cart.items.productId': prodId },
+        { $pull: { 'cart.items': { productId: prodId } } }
+      );
+    })
+    .then((result) => {
+      if (!result) return;
+      return Order.updateMany(
+        { 'items.productId': prodId },
+        { $pull: { items: { productId: prodId } } }
+      );
+    })
+    .then((result) => {
+      if (result) {
+        console.log(
+          `${result.modifiedCount} document(s) in orders collection updated`
+        );
+        return Order.deleteMany({
+          items: { $exists: true, $eq: [] },
+        });
+      }
+      return;
+    })
+    .then((deleteResult) => {
+      if (deleteResult.deletedCount > 0) {
+        console.log(
+          `${deleteResult.deletedCount} document(s) in orders collection deleted where the array is empty`
+        );
+      }
       res.redirect('/admin/products');
     })
-    .catch((err) => console.log(err));
+    .catch((err) => {
+      console.error(err);
+    });
 };
 
 exports.getAdminProducts = (req, res, next) => {
-  Product.find()
+  Product.find({ userId: req.user._id })
+    // Product.find()
     // .select('title price -_id')
     // .populate('userId', 'name')
     .then((products) => {
@@ -122,8 +154,8 @@ exports.getAdminProducts = (req, res, next) => {
         pageTitle: 'Admin Products',
         path: '/admin/products',
         prods: products,
-        isAuthenticated: req.session.isLoggedIn,
-        user: req.user,
+        // isAuthenticated: req.session.isLoggedIn,
+        // user: req.user,
       });
     })
     .catch((err) => console.log(err));

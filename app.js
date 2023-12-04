@@ -6,12 +6,13 @@ const mongoose = require('mongoose');
 const bodyParcer = require('body-parser');
 const path = require('path');
 const flash = require('connect-flash');
+const multer = require('multer');
 
 const adminRoutes = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
 const authRoutes = require('./routes/auth');
 
-const pageNotFoundController = require('./controllers/404');
+const errorController = require('./controllers/error');
 const User = require('./models/user');
 const { connect } = require('http2');
 
@@ -25,6 +26,26 @@ const store = new MongoDBStore({
 });
 const csrfProtection = csrf();
 
+const fileStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'images');
+  },
+  filename: (req, file, cb) => {
+    cb(null, new Date().getTime() + '-' + file.originalname);
+  },
+});
+
+const fileFilter = (req, file, cb) => {
+  if (
+    file.mimetype === 'image/jpg' ||
+    file.mimetype === 'image/png' ||
+    file.mimetype === 'image/jpeg'
+  ) {
+    return cb(null, true);
+  }
+  cb(null, false);
+};
+
 // Templates manager
 app.set('view engine', 'ejs');
 app.set('views', 'views');
@@ -32,8 +53,13 @@ app.set('views', 'views');
 // Auto Encode requests
 app.use(bodyParcer.urlencoded({ extended: false }));
 
+app.use(
+  multer({ storage: fileStorage, fileFilter: fileFilter }).single('image')
+);
+
 // Initialisation of public folder for express
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/images', express.static(path.join(__dirname, 'images')));
 
 app.use(
   session({
@@ -43,18 +69,9 @@ app.use(
     store: store,
   })
 );
+
 app.use(csrfProtection);
 app.use(flash());
-
-app.use((req, res, next) => {
-  if (!req.session.user) return next();
-  User.findById(req.session.user._id)
-    .then((user) => {
-      req.user = user;
-      next();
-    })
-    .catch((err) => console.log(err));
-});
 
 // for all renders will added this
 app.use((req, res, next) => {
@@ -63,11 +80,36 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use((req, res, next) => {
+  if (!req.session.user) return next();
+  User.findById(req.session.user._id)
+    .then((user) => {
+      if (!user) {
+        return next();
+      }
+      req.user = user;
+      next();
+    })
+    .catch((err) => {
+      next(new Error(err));
+    });
+});
+
 app.use('/admin', adminRoutes);
 app.use(shopRoutes);
 app.use(authRoutes);
 
-app.use(pageNotFoundController.pageNotFound);
+app.get('/500', errorController.get500);
+
+app.use(errorController.pageNotFound);
+
+app.use((error, req, res, next) => {
+  res.status(500).render('500', {
+    pageTitle: 'Error',
+    path: '/500',
+    errorMsg: error,
+  });
+});
 
 mongoose
   .connect(MONGODB_URI)

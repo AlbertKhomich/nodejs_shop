@@ -20,7 +20,6 @@ router.post(
     .isAlphanumeric('en-US', { ignore: ' ' })
     .isLength({ min: 1, max: 30 })
     .withMessage('Title need to be from 1 to 30 symbols'),
-  check('imageUrl').isURL().withMessage('Image need to be an url'),
   check('price').isCurrency().withMessage('Need to be a currency'),
   check('description')
     .trim()
@@ -38,7 +37,6 @@ router.post(
     .trim()
     .isAlphanumeric('en-US', { ignore: ' ' })
     .isLength({ min: 1, max: 30 }),
-  check('imageUrl').isURL().withMessage('Image need to be an url'),
   check('price').isCurrency().withMessage('Need to be a currency'),
   check('description')
     .trim()

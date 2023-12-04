@@ -6,6 +6,7 @@ const product = require('../models/product');
 const { validationResult } = require('express-validator');
 const mongoose = require('mongoose');
 const fileHelper = require('../util/file');
+const { paginate } = require('../util/pagination');
 
 exports.getAddProduct = (req, res, next) => {
   res.render('admin/edit-product', {
@@ -241,22 +242,5 @@ exports.getDeleteProduct = (req, res, next) => {
 };
 
 exports.getAdminProducts = (req, res, next) => {
-  Product.find({ userId: req.user._id })
-    // Product.find()
-    // .select('title price -_id')
-    // .populate('userId', 'name')
-    .then((products) => {
-      res.render('admin/products', {
-        pageTitle: 'Admin Products',
-        path: '/admin/products',
-        prods: products,
-        // isAuthenticated: req.session.isLoggedIn,
-        // user: req.user,
-      });
-    })
-    .catch((err) => {
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
+  paginate(req, res, 'admin/products', 'Admin Products', '/admin/products');
 };

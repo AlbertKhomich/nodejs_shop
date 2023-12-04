@@ -6,6 +6,7 @@ const Product = require('../models/product');
 const mongoose = require('mongoose');
 const User = require('../models/user');
 const Order = require('../models/orders');
+const { paginate } = require('../util/pagination');
 // const Cart = require('../models/cart');
 // const Order = require('../models/order');
 
@@ -17,19 +18,7 @@ exports.getShop = (req, res, next) => {
 };
 
 exports.getProductList = (req, res, next) => {
-  Product.find()
-    .then((products) => {
-      res.render('shop/product-list', {
-        prods: products,
-        pageTitle: 'Products',
-        path: '/product-list',
-      });
-    })
-    .catch((err) => {
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
+  paginate(req, res, 'shop/product-list', 'Products', '/products');
 };
 
 exports.getProduct = (req, res, next) => {

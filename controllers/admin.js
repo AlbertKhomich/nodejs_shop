@@ -6,7 +6,7 @@ const product = require('../models/product');
 const { validationResult } = require('express-validator');
 const mongoose = require('mongoose');
 const fileHelper = require('../util/file');
-const { paginate } = require('../util/pagination');
+const { ITEMS_PER_PAGE } = require('../config');
 
 exports.getAddProduct = (req, res, next) => {
   res.render('admin/edit-product', {
@@ -191,7 +191,7 @@ exports.postEditProduct = (req, res, next) => {
   });
 };
 
-exports.getDeleteProduct = (req, res, next) => {
+exports.deleteProduct = (req, res, next) => {
   const prodId = req.params.productId;
   Product.findById(prodId)
     .then((prod) => {
@@ -232,15 +232,45 @@ exports.getDeleteProduct = (req, res, next) => {
           `${deleteResult.deletedCount} document(s) in orders collection deleted where the array is empty`
         );
       }
-      res.redirect('/admin/products');
+      res.status(200).json({ message: 'Success' });
     })
     .catch((err) => {
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
+      res.status(500).json({ message: 'Deleting failed' });
     });
 };
 
 exports.getAdminProducts = (req, res, next) => {
-  paginate(req, res, 'admin/products', 'Admin Products', '/admin/products');
+  const page = +req.query.page || 1;
+  let totalItems;
+  const currAdminProds = { userId: req.user._id };
+
+  Product.countDocuments(currAdminProds)
+    .then((numProducts) => {
+      totalItems = numProducts;
+      return;
+    })
+    .then(() => {
+      return Product.find(currAdminProds)
+        .skip((page - 1) * ITEMS_PER_PAGE)
+        .limit(ITEMS_PER_PAGE);
+    })
+    .then((products) => {
+      res.render('admin/products', {
+        prods: products,
+        pageTitle: 'Products',
+        path: '/admin/products',
+        currPage: page,
+        hasNextPage: ITEMS_PER_PAGE * page < totalItems,
+        hasPrevPage: page > 1,
+        nextPage: page + 1,
+        prevPage: page - 1,
+        lastPage: Math.ceil(totalItems / ITEMS_PER_PAGE),
+      });
+    })
+    .catch((err) => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      console.log(err);
+      return next(error);
+    });
 };

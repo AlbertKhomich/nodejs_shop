@@ -6,9 +6,7 @@ const Product = require('../models/product');
 const mongoose = require('mongoose');
 const User = require('../models/user');
 const Order = require('../models/orders');
-const { paginate } = require('../util/pagination');
-// const Cart = require('../models/cart');
-// const Order = require('../models/order');
+const { ITEMS_PER_PAGE } = require('../config');
 
 exports.getShop = (req, res, next) => {
   res.render('shop/index', {
@@ -18,7 +16,38 @@ exports.getShop = (req, res, next) => {
 };
 
 exports.getProductList = (req, res, next) => {
-  paginate(req, res, 'shop/product-list', 'Products', '/products');
+  const page = +req.query.page || 1;
+  let totalItems;
+
+  Product.countDocuments()
+    .then((numProducts) => {
+      totalItems = numProducts;
+      return;
+    })
+    .then(() => {
+      return Product.find()
+        .skip((page - 1) * ITEMS_PER_PAGE)
+        .limit(ITEMS_PER_PAGE);
+    })
+    .then((products) => {
+      res.render('shop/product-list', {
+        prods: products,
+        pageTitle: 'Products',
+        path: '/products',
+        currPage: page,
+        hasNextPage: ITEMS_PER_PAGE * page < totalItems,
+        hasPrevPage: page > 1,
+        nextPage: page + 1,
+        prevPage: page - 1,
+        lastPage: Math.ceil(totalItems / ITEMS_PER_PAGE),
+      });
+    })
+    .catch((err) => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      console.log(err);
+      return next(error);
+    });
 };
 
 exports.getProduct = (req, res, next) => {
@@ -157,7 +186,7 @@ exports.getInvoice = (req, res, next) => {
       });
       pdfDoc.fontSize(20).text(`
       ______________________
-      Total: ${totalPrice}`);
+      Total: ${totalPrice.toFixed(2)}$`);
 
       pdfDoc.end();
       // fs.readFile(invoicePath, (err, data) => {

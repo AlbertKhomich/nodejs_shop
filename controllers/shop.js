@@ -7,6 +7,10 @@ const mongoose = require('mongoose');
 const User = require('../models/user');
 const Order = require('../models/orders');
 const { ITEMS_PER_PAGE } = require('../config');
+// This is test secret API key.
+const stripe = require('stripe')(
+  'sk_test_51OJueZLJW4VKEQvlHlxUCWop5E8qBDqNJqNbnBGr05XpJztEM918AN77rfDtfNz232M9x24gRlPHZivwxdkcQULN00JeBofJOG'
+);
 
 exports.getShop = (req, res, next) => {
   res.render('shop/index', {
@@ -146,10 +150,54 @@ exports.getOrders = (req, res, next) => {
 };
 
 exports.getCheckout = (req, res, next) => {
-  res.render('shop/checkout', {
-    pageTitle: 'Checkout',
-    path: '',
-  });
+  let total = 0;
+  let products;
+  req.user
+    .populate('cart.items.productId')
+    .then((user) => {
+      products = user.cart.items;
+      products.forEach((p) => {
+        total += p.quantity * p.productId.price;
+      });
+    })
+    .then(() => {
+      const paymentIntent = stripe.paymentIntents.create({
+        amount: total * 100,
+        currency: 'eur',
+        automatic_payment_methods: { enabled: true },
+      });
+      return paymentIntent;
+    })
+    .then((paymentIntent) => {
+      res.render('shop/checkout', {
+        pageTitle: 'Checkout',
+        path: '/checkout',
+        products: products,
+        totalSum: total,
+        paymentId: paymentIntent.id,
+      });
+    })
+    .catch((err) => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
+};
+
+exports.getSecret = (req, res, next) => {
+  const paymentId = req.params.paymentId;
+  stripe.paymentIntents
+    .retrieve(paymentId)
+    .then((intent) => {
+      res.json({
+        client_secret: intent.client_secret,
+      });
+    })
+    .catch((err) => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
 };
 
 exports.getInvoice = (req, res, next) => {

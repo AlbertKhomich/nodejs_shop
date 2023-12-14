@@ -8,9 +8,10 @@ const User = require('../models/user');
 const Order = require('../models/orders');
 const { ITEMS_PER_PAGE } = require('../config');
 // This is test secret API key.
-const stripe = require('stripe')(
-  'sk_test_51OJueZLJW4VKEQvlHlxUCWop5E8qBDqNJqNbnBGr05XpJztEM918AN77rfDtfNz232M9x24gRlPHZivwxdkcQULN00JeBofJOG'
-);
+const stripe = require('stripe')(process.env.STRIPE_KEY);
+// const stripe = require('stripe')(
+// 'sk_test_51OJueZLJW4VKEQvlHlxUCWop5E8qBDqNJqNbnBGr05XpJztEM918AN77rfDtfNz232M9x24gRlPHZivwxdkcQULN00JeBofJOG'
+// );
 
 exports.getShop = (req, res, next) => {
   res.render('shop/index', {
@@ -237,18 +238,6 @@ exports.getInvoice = (req, res, next) => {
       Total: ${totalPrice.toFixed(2)}$`);
 
       pdfDoc.end();
-      // fs.readFile(invoicePath, (err, data) => {
-      //   if (err) {
-      //     return next(err);
-      //   }
-      //   res.setHeader('Content-Type', 'application/pdf');
-      //   // res.setHeader('Content-Disposition', `attachment; filename=${invoiceName}`);
-      //   res.setHeader('Content-Disposition', 'inline');
-      //   res.send(data);
-      // });
-      // const file = fs.createReadStream(invoicePath);
-
-      // file.pipe(res);
     })
     .catch(next);
 };

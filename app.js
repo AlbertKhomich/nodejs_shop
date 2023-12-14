@@ -7,6 +7,11 @@ const bodyParcer = require('body-parser');
 const path = require('path');
 const flash = require('connect-flash');
 const multer = require('multer');
+const helmet = require('helmet');
+const compression = require('compression');
+const morgan = require('morgan');
+const fs = require('fs');
+const https = require('https');
 
 const adminRoutes = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
@@ -16,8 +21,8 @@ const errorController = require('./controllers/error');
 const User = require('./models/user');
 const { connect } = require('http2');
 
-const MONGODB_URI =
-  'mongodb+srv://alterego:tNXWSnypMpjgrFkX@clusterfirstnodeapp.ubtp1kv.mongodb.net/shop';
+const MONGODB_URI = `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@clusterfirstnodeapp.ubtp1kv.mongodb.net/${process.env.MONGO_DEFAULT_DB}`;
+
 
 const app = express();
 
@@ -26,6 +31,9 @@ const store = new MongoDBStore({
   collection: 'sessions',
 });
 const csrfProtection = csrf();
+
+// const privateKey = fs.readFileSync('server.key');
+// const certificate = fs.readFileSync('server.cert');
 
 const fileStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -50,6 +58,15 @@ const fileFilter = (req, file, cb) => {
 // Templates manager
 app.set('view engine', 'ejs');
 app.set('views', 'views');
+
+const accessLogStream = fs.createWriteStream(
+  path.join(__dirname, 'access.log'),
+  { flags: 'a' }
+);
+
+app.use(helmet());
+app.use(compression());
+app.use(morgan('combined', { stream: accessLogStream }));
 
 // Auto Encode requests
 app.use(bodyParcer.urlencoded({ extended: false }));
@@ -115,6 +132,9 @@ app.use((error, req, res, next) => {
 mongoose
   .connect(MONGODB_URI)
   .then(() => {
-    app.listen(3000);
+    // https
+    //   .createServer({ key: privateKey, cert: certificate }, app)
+    //   .listen(process.env.PORT || 3000);
+    app.listen(process.env.PORT || 3000);
   })
   .catch((err) => console.log(err));

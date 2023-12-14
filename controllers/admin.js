@@ -234,7 +234,7 @@ exports.deleteProduct = (req, res, next) => {
       }
       res.status(200).json({ message: 'Success' });
     })
-    .catch((err) => {
+    .catch(() => {
       res.status(500).json({ message: 'Deleting failed' });
     });
 };
